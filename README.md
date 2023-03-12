@@ -90,7 +90,7 @@ v18.10.9
   - [apt](#apt)
   - [dnf](#dnf)
   - [yum](#yum)
-  - [~~apk~~ (coming soon)](#apk-coming-soon)
+  - [apk](#apk)
   - [aur](#aur)
   - [nix](#nix)
 - [Other Shells](#other-shells)
@@ -365,7 +365,7 @@ yum-config-manager --add-repo https://rtx.pub/rpm/rtx.repo
 yum install -y rtx
 ```
 
-### ~~apk~~ (coming soon)
+### apk
 
 For Alpine Linux:
 
