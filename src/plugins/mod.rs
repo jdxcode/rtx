@@ -27,6 +27,7 @@ use crate::plugins::script_manager::Script::ParseLegacyFile;
 use crate::ui::progress_report::{ProgressReport, PROG_TEMPLATE};
 use crate::{dirs, file};
 
+mod core;
 mod script_manager;
 
 pub type PluginName = String;
@@ -91,7 +92,18 @@ impl Plugin {
     }
 
     pub fn is_installed(&self) -> bool {
-        self.plugin_path.exists()
+        if !self.plugin_path.exists() {
+            return false;
+        }
+        let rtx_core_path = self.plugin_path.join(".rtx-core");
+        if !rtx_core_path.exists() {
+            return true;
+        }
+        let rtx_core = fs::read_to_string(rtx_core_path)
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+        rtx_core == env!("CARGO_PKG_VERSION")
     }
 
     pub fn get_remote_url(&self) -> Option<String> {
@@ -101,6 +113,7 @@ impl Plugin {
 
     pub fn install(&self, config: &Config, pr: &mut ProgressReport, force: bool) -> Result<()> {
         self.decorate_progress_bar(pr);
+        let core = self.repo_url.is_none() && core::has_plugin(&self.name);
         let repository = self
             .repo_url
             .as_ref()
@@ -114,13 +127,20 @@ impl Plugin {
             self.uninstall(pr)?;
         }
 
-        let git = Git::new(self.plugin_path.to_path_buf());
-        pr.set_message(format!("cloning {repository}"));
-        git.clone(repository)?;
-        if let Some(ref_) = &self.repo_ref {
-            pr.set_message(format!("checking out {ref_}"));
-            git.update(Some(ref_.to_string()))?;
-        }
+        let sha = if core {
+            pr.set_message(format!("extracting core plugin {}", &self.name));
+            core::install_plugin(&self.name, &self.plugin_path)?;
+            "core".into()
+        } else {
+            let git = Git::new(self.plugin_path.to_path_buf());
+            pr.set_message(format!("cloning {repository}"));
+            git.clone(repository)?;
+            if let Some(ref_) = &self.repo_ref {
+                pr.set_message(format!("checking out {ref_}"));
+                git.update(Some(ref_.to_string()))?;
+            }
+            git.current_sha_short()?
+        };
 
         pr.set_message("loading plugin remote versions".into());
         if self.has_list_all_script() {
@@ -135,7 +155,6 @@ impl Plugin {
             self.legacy_filenames(&config.settings)?;
         }
 
-        let sha = git.current_sha_short()?;
         pr.finish_with_message(format!(
             "{repository}#{}",
             style(&sha).bright().yellow().for_stderr(),
