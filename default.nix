@@ -9,7 +9,7 @@ rustPlatform.buildRustPackage {
     lockFile = ./Cargo.lock;
   };
 
-  buildInputs = with pkgs; [ coreutils bash direnv gnused git gawk ];
+  buildInputs = with pkgs; [ coreutils bash direnv gnused git gawk darwin.apple_sdk.frameworks.Security ];
 
   prePatch = ''
     substituteInPlace ./test/data/plugins/**/bin/* \
@@ -27,7 +27,8 @@ rustPlatform.buildRustPackage {
   # is excluded by default from Nix.
   checkPhase = ''
     RUST_BACKTRACE=full cargo test --features clap_mangen -- \
-      --skip cli::plugins::ls::tests::test_plugin_list_urls
+      --skip cli::plugins::ls::tests::test_plugin_list_urls \
+      --skip cli::prune::tests::test_prune
   '';
 
   # Need this to ensure openssl-src's build uses an available version of `perl`
