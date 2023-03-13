@@ -1,0 +1,35 @@
+# Maintainer: Jeff Dickey <alpine@rtx.pub>
+pkgname=rtx
+pkgver=1.23.4
+pkgrel=0
+pkgdesc="Polyglot runtime and dev tool version manager"
+url="https://rtx.pub"
+arch="all !s390x !riscv64 !ppc64le" # limited by cargo
+license="MIT"
+source="$pkgname-$pkgver.tar.gz::https://github.com/jdxcode/rtx/archive/refs/tags/v$pkgver.tar.gz"
+makedepends="cargo"
+
+export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+
+prepare() {
+  default_prepare
+  git init .
+  cargo fetch --target="$CTARGET" --locked
+}
+
+build() {
+  cargo build --release --frozen
+}
+
+check() {
+  cargo test --frozen
+}
+
+package() {
+  install -Dm755 target/release/"$pkgname" \
+    "$pkgdir"/usr/bin/"$pkgname"
+}
+
+sha512sums="
+9c879c473f18c735a6e5e0118c5999436c5c957d95115af87f01a2209ec2ac4403943c358a7c664108e35c6fd88525def83f0eadb419a06635ac0af72cdb23fe  rtx-1.23.4.tar.gz
+"
